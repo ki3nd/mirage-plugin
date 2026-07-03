@@ -1,0 +1,1 @@
+This plugin runs a local mirage daemon on 127.0.0.1 and sends your workspace configuration (including secrets from the plugin credentials) to it over localhost only. No data leaves the host except calls your workspace YAML explicitly makes to the resources you mount (S3, Slack, etc.).
