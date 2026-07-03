@@ -1,0 +1,44 @@
+identity:
+  author: "ki3nd"
+  name: "mirage"
+  label:
+    en_US: "Mirage"
+    zh_Hans: "Mirage"
+  description:
+    en_US: "Run bash commands across S3, Slack, Redis, RAM and more via a unified filesystem."
+    zh_Hans: "通过统一文件系统在 S3、Slack、Redis、RAM 等资源上运行 bash 命令。"
+  icon: "icon.svg"
+credentials_schema:
+  - name: env
+    type: secret-input
+    required: true
+    label:
+      en_US: "Secrets (.env)"
+    placeholder:
+      en_US: "AWS_ACCESS_KEY_ID=...\nAWS_SECRET_ACCESS_KEY=...\nSLACK_BOT_TOKEN=xoxb-..."
+    help:
+      en_US: "KEY=VALUE per line (UPPERCASE keys). Referenced from workspace YAML as ${KEY}."
+  - name: cache_backend
+    type: select
+    required: false
+    default: ram
+    options:
+      - value: ram
+        label: { en_US: "RAM (default)" }
+      - value: redis
+        label: { en_US: "Redis (shared)" }
+    label:
+      en_US: "Cache backend"
+  - name: redis_url
+    type: text-input
+    required: false
+    placeholder:
+      en_US: "redis://localhost:6379/0"
+    label:
+      en_US: "Redis URL (when cache = redis)"
+tools:
+  - tools/execute.yaml
+  - tools/snapshot.yaml
+extra:
+  python:
+    source: provider/mirage.py
