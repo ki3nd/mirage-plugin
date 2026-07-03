@@ -247,6 +247,6 @@ class DaemonManager:
 # 60s) starts immediately so idle workspaces get swept even between tool
 # calls; atexit makes sure tracked workspaces are DELETEd (and the reaper
 # stopped) on interpreter shutdown.
-MANAGER = DaemonManager()
+MANAGER = DaemonManager(max_workspaces=12)
 MANAGER.start_reaper()
 atexit.register(MANAGER.shutdown)
