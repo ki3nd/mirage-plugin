@@ -34,12 +34,21 @@ Each tool call takes a `workspace_yaml` that declares the mounts. Secrets are re
 ```yaml
 mode: WRITE                       # optional; omit for read-only (see Safety)
 mounts:
-  /data:  { resource: ram }
-  /s3:    { resource: s3, config: { bucket: logs,
-            aws_access_key_id: ${AWS_ACCESS_KEY_ID},
-            aws_secret_access_key: ${AWS_SECRET_ACCESS_KEY} } }
-  /slack: { resource: slack, config: { token: ${SLACK_BOT_TOKEN} } }
+  /data:
+    resource: ram
+  /s3:
+    resource: s3
+    config:
+      bucket: logs
+      aws_access_key_id: ${AWS_ACCESS_KEY_ID}
+      aws_secret_access_key: ${AWS_SECRET_ACCESS_KEY}
+  /slack:
+    resource: slack
+    config:
+      token: ${SLACK_BOT_TOKEN}
 ```
+
+Use block style (indented), not inline `{ ... }` flow style: a `${SECRET}` placeholder inside `{ }` is not valid YAML and will fail to parse.
 
 Then, for example, call **execute** with `command: "grep -r alert /slack | wc -l"`.
 
