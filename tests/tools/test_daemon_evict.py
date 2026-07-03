@@ -18,6 +18,13 @@ class FakeClient:
         self.ensure_calls = 0
         self._execute_codes: list[int] = []
 
+    def is_reachable(self, timeout=0.5):
+        # Fake can't confirm reachability, so ensure_daemon takes its slow
+        # path and calls ensure_running -- exercising the full respawn path
+        # on a cold retry. (The real DaemonClient.is_reachable fast-path is
+        # covered by the real-daemon integration tests.)
+        return False
+
     def ensure_running(self, **k):
         self.ensure_calls += 1
 

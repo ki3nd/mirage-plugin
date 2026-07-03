@@ -20,15 +20,15 @@ from dify_plugin import Tool
 
 from tools._config import build_config_dict, make_workspace_id
 from tools._daemon import MANAGER
-from tools._env import parse_env_block
+from tools._env import parse_env_block, redact_secrets
 
 
 class ExecuteTool(Tool):
     def _invoke(self, tool_parameters: dict):
-        workspace_yaml = tool_parameters["workspace_yaml"]
-        command = tool_parameters["command"]
-
+        env: dict = {}
         try:
+            workspace_yaml = tool_parameters["workspace_yaml"]
+            command = tool_parameters["command"]
             creds = self.runtime.credentials
             env = parse_env_block(creds.get("env") or "")
             cache_backend = creds.get("cache_backend") or "ram"
@@ -49,7 +49,8 @@ class ExecuteTool(Tool):
             # can be recreated transparently and the command retried once.
             out, err, code = MANAGER.execute(wid, command, config=config)
         except Exception as e:
-            yield self.create_text_message(f"mirage execute failed: {e}")
+            yield self.create_text_message(
+                redact_secrets(f"mirage execute failed: {e}", env))
             return
 
         yield self.create_text_message(out or err)

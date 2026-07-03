@@ -1,4 +1,4 @@
-from tools._env import parse_env_block
+from tools._env import parse_env_block, redact_secrets
 
 
 def test_basic():
@@ -19,3 +19,15 @@ def test_strip():
 
 def test_empty():
     assert parse_env_block("") == {}
+
+
+def test_redact_secrets_masks_values():
+    secrets = {"SK": "supersecret", "AK": "akid123"}
+    msg = "ValidationError: aws_secret_access_key='supersecret' key=akid123 bad"
+    out = redact_secrets(msg, secrets)
+    assert "supersecret" not in out and "akid123" not in out
+    assert out.count("***") == 2
+
+
+def test_redact_secrets_ignores_empty_and_noop():
+    assert redact_secrets("nothing here", {"A": "", "B": "zzz"}) == "nothing here"

@@ -16,16 +16,17 @@ from dify_plugin import Tool
 
 from tools._config import build_config_dict, make_workspace_id
 from tools._daemon import MANAGER
-from tools._env import parse_env_block
+from tools._env import parse_env_block, redact_secrets
 
 
 class SnapshotTool(Tool):
     def _invoke(self, tool_parameters: dict):
-        workspace_yaml = tool_parameters["workspace_yaml"]
-        compress = tool_parameters.get("compress") or "none"
-        compress_arg = None if compress == "none" else compress
-
+        env: dict = {}
         try:
+            workspace_yaml = tool_parameters["workspace_yaml"]
+            compress = tool_parameters.get("compress") or "none"
+            compress_arg = None if compress == "none" else compress
+
             creds = self.runtime.credentials
             env = parse_env_block(creds.get("env") or "")
             cache_backend = creds.get("cache_backend") or "ram"
@@ -44,7 +45,8 @@ class SnapshotTool(Tool):
             MANAGER.ensure_workspace(wid, config)
             blob = MANAGER.snapshot(wid, compress=compress_arg)
         except Exception as e:
-            yield self.create_text_message(f"mirage snapshot failed: {e}")
+            yield self.create_text_message(
+                redact_secrets(f"mirage snapshot failed: {e}", env))
             return
 
         if compress_arg == "gz":

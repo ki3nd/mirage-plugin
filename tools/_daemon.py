@@ -17,6 +17,7 @@ background reaper thread, retry-on-cold for ``execute``/
 """
 
 import atexit
+import os
 import threading
 import time
 
@@ -43,9 +44,17 @@ class DaemonManager:
     def ensure_daemon(self) -> None:
         """Idempotently make sure the daemon is reachable, spawning it if
         needed. Guarded by a lock so concurrent callers don't race to
-        spawn duplicate daemon processes.
+        spawn duplicate daemon processes. Fast-path the common
+        already-running case with a lock-free health check so concurrent
+        invocations don't all serialize through ``_daemon_lock`` just to
+        confirm the daemon is up; take the lock only when a spawn looks
+        necessary (re-checking inside the lock so only one greenlet spawns).
         """
+        if self._client.is_reachable():
+            return
         with self._daemon_lock:
+            if self._client.is_reachable():
+                return
             self._client.ensure_running(startup_timeout=40.0, allow_spawn=True)
 
     def _req(self, method: str, path: str, **kw) -> httpx.Response:
@@ -139,8 +148,17 @@ class DaemonManager:
             raise RuntimeError(
                 f"snapshot failed: {r.status_code} {r.text[:200]}")
         path = r.json()["path"]
-        with open(path, "rb") as f:
-            data = f.read()
+        try:
+            with open(path, "rb") as f:
+                data = f.read()
+        finally:
+            # The daemon writes one tar per (deterministic) workspace id;
+            # we already hold the bytes, so delete the on-disk file to
+            # avoid unbounded accumulation under the daemon's snapshot_root.
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
         if compress == "gz":
             import gzip
             data = gzip.compress(data)
