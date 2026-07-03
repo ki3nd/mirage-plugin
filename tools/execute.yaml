@@ -1,0 +1,57 @@
+identity:
+  name: execute
+  author: "ki3nd"
+  label:
+    en_US: "Execute"
+    zh_Hans: "执行命令"
+description:
+  human:
+    en_US: "Run a bash command against a Mirage workspace (a virtual filesystem over S3, Slack, Redis, RAM, and more)."
+    zh_Hans: "在 Mirage 工作区（覆盖 S3、Slack、Redis、RAM 等资源的虚拟文件系统）上运行 bash 命令。"
+  llm: >-
+    Run a bash command inside a Mirage workspace: a virtual filesystem that
+    mounts external resources (S3, Slack, Redis, RAM, and more) so the
+    command can read/write them as plain files/dirs.
+parameters:
+  - name: workspace_yaml
+    type: string
+    required: true
+    label:
+      en_US: "Workspace YAML"
+      zh_Hans: "工作区 YAML"
+    human_description:
+      en_US: "Mirage workspace config (YAML) declaring which mounts are available and their mode."
+      zh_Hans: "Mirage 工作区配置（YAML），声明可用挂载及其模式。"
+    llm_description: >-
+      YAML workspace config declaring the mounts available to the command,
+      e.g. "mounts:\n  /data: {resource: s3, bucket: my-bucket}". The
+      workspace is READ-only by default: any command that writes, modifies,
+      or deletes files will fail unless the YAML explicitly opts in to
+      writes by adding a top-level "mode: WRITE" (applies to the whole
+      workspace) or a "mode: WRITE" on an individual mount (applies to just
+      that mount, overriding the workspace-level default). Only enable
+      WRITE when the user's request actually requires creating, editing, or
+      deleting something. Secrets/credentials needed by a mount (API keys,
+      tokens, connection strings, etc.) must NOT be inlined in the YAML;
+      reference them as "${UPPERCASE_NAME}" placeholders, which are
+      resolved from the secrets configured on the Mirage provider
+      credentials at run time.
+    form: llm
+  - name: command
+    type: string
+    required: true
+    label:
+      en_US: "Command"
+      zh_Hans: "命令"
+    human_description:
+      en_US: "The bash command to run inside the workspace."
+      zh_Hans: "在工作区内运行的 bash 命令。"
+    llm_description: >-
+      The bash command to execute inside the workspace described by
+      workspace_yaml. Paths under the declared mount points behave like a
+      normal filesystem (e.g. "cat /data/report.csv", "echo hi >
+      /data/x").
+    form: llm
+extra:
+  python:
+    source: tools/execute.py
