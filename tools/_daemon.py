@@ -121,6 +121,33 @@ class DaemonManager:
         d = r.json()
         return d.get("stdout", ""), d.get("stderr", ""), int(d.get("exit_code", 1))
 
+    def snapshot(self, wid: str, compress: str | None = None,
+                timeout: float = 110.0) -> bytes:
+        """Snapshot workspace ``wid`` to a tar file on the daemon host and
+        return its bytes.
+
+        The daemon endpoint writes the tar to its own ``snapshot_root``
+        (path is relative in the request, resolved+returned absolute in
+        the response) and does NOT stream bytes or compress -- since the
+        daemon is a subprocess on the same host as the plugin, we just
+        open the returned absolute path and read it. If ``compress ==
+        "gz"``, gzip client-side (the daemon never compresses).
+        """
+        r = self._req("POST", f"/v1/workspaces/{wid}/snapshot",
+                      json={"path": f"{wid}.tar"}, timeout=timeout)
+        if r.status_code not in (200, 201):
+            raise RuntimeError(
+                f"snapshot failed: {r.status_code} {r.text[:200]}")
+        path = r.json()["path"]
+        with open(path, "rb") as f:
+            data = f.read()
+        if compress == "gz":
+            import gzip
+            data = gzip.compress(data)
+        with self._lock:
+            self._last_used[wid] = self._clock()
+        return data
+
     def delete(self, wid: str) -> None:
         try:
             self._req("DELETE", f"/v1/workspaces/{wid}")
