@@ -1,0 +1,58 @@
+identity:
+  name: snapshot
+  author: "ki3nd"
+  label:
+    en_US: "Snapshot"
+    zh_Hans: "快照"
+description:
+  human:
+    en_US: "Export the current Mirage workspace as a downloadable tar archive."
+    zh_Hans: "将当前 Mirage 工作区导出为可下载的 tar 归档。"
+  llm: >-
+    Snapshot a Mirage workspace to a downloadable tar archive. Captures mount
+    configs, touched file bytes, sessions and history. Live-only resources
+    (e.g. Slack, Gmail) and files that were never accessed are NOT captured.
+parameters:
+  - name: workspace_yaml
+    type: string
+    required: true
+    label:
+      en_US: "Workspace YAML"
+      zh_Hans: "工作区 YAML"
+    human_description:
+      en_US: "Mirage workspace config (YAML) declaring which mounts are available and their mode."
+      zh_Hans: "Mirage 工作区配置（YAML），声明可用挂载及其模式。"
+    llm_description: >-
+      YAML workspace config declaring the mounts to snapshot, e.g.
+      "mounts:\n  /data: {resource: s3, bucket: my-bucket}". The workspace is
+      READ-only by default; add a top-level "mode: WRITE" or a per-mount
+      "mode: WRITE" only if a prior step needed writes. Secrets/credentials
+      must NOT be inlined; reference them as "${UPPERCASE_NAME}" placeholders,
+      resolved from the secrets configured on the Mirage provider credentials.
+    form: llm
+  - name: compress
+    type: select
+    required: false
+    default: none
+    options:
+      - value: none
+        label:
+          en_US: "None (.tar)"
+          zh_Hans: "不压缩 (.tar)"
+      - value: gz
+        label:
+          en_US: "gzip (.tar.gz)"
+          zh_Hans: "gzip (.tar.gz)"
+    label:
+      en_US: "Compression"
+      zh_Hans: "压缩"
+    human_description:
+      en_US: "Optional gzip compression of the tar archive."
+      zh_Hans: "对 tar 归档进行可选的 gzip 压缩。"
+    llm_description: >-
+      Compression for the archive: "none" for a plain .tar, or "gz" for a
+      gzip-compressed .tar.gz.
+    form: form
+extra:
+  python:
+    source: tools/snapshot.py
