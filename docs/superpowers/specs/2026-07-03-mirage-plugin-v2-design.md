@@ -139,4 +139,4 @@ mirage-plugin-v2/
 | reaper interval | 60s |
 | command timeout (httpx) | 110s |
 | daemon startup_timeout | 40s |
-| daemon idle self-shutdown | 30s (mặc định mirage, khi registry rỗng) |
+| daemon idle self-shutdown | 600s (plugin set `MIRAGE_IDLE_GRACE_SECONDS=600` trước khi spawn; mặc định mirage 30s) — chỉ tính sau khi registry rỗng |

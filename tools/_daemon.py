@@ -25,6 +25,12 @@ import httpx
 
 from mirage.cli.client import make_client
 
+# Keep a spawned daemon alive longer once its workspace registry empties, so
+# short lulls between conversations don't trigger a respawn (the daemon reads
+# this at startup; we set it before the first spawn so the child inherits it).
+# Only affects newly-spawned daemons; deployments can override via the env var.
+os.environ.setdefault("MIRAGE_IDLE_GRACE_SECONDS", "600")
+
 
 class DaemonManager:
     """Owns one ``DaemonClient`` and tracks last-used times per workspace

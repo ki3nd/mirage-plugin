@@ -9,9 +9,9 @@
 Quyết bởi **eviction phía client (`DaemonManager` của plugin)**, KHÔNG phải daemon:
 - **idle-TTL = 600s (10 phút):** reaper (mỗi 60s) DELETE workspace không dùng > 10'. Mỗi lần `ensure_workspace` mới cũng quét idle.
 - **LRU cap = 6:** tạo workspace thứ 7 → xoá ngay cái ít-dùng-nhất bất kể tuổi.
-- **Daemon KHÔNG tự evict từng workspace idle.** Nó chỉ tự tắt **30s sau khi TOÀN BỘ registry rỗng** (sau khi client đã xoá workspace cuối).
+- **Daemon KHÔNG tự evict từng workspace idle.** Nó chỉ tự tắt **~600s sau khi TOÀN BỘ registry rỗng** (plugin đặt `MIRAGE_IDLE_GRACE_SECONDS=600` trong `tools/_daemon.py` trước khi spawn; mặc định mirage là 30s). Timeline: workspace sống tới ~600s (idle-TTL client) → reaper xoá → registry rỗng → daemon đợi thêm ~600s → tắt (≈20 phút tổng khi hoàn toàn rảnh).
 
-→ Không chạy command: workspace sống **~10 phút** rồi reaper xoá; hết workspace thì 30s sau daemon tự thoát. (600s / 6 là hằng số plugin đặt, chỉnh được.)
+→ Không chạy command: workspace sống **~10 phút** rồi reaper xoá. Tăng grace của daemon chỉ giảm số lần **respawn daemon** (cost ~vài giây import mirage), KHÔNG làm hội thoại mới ấm hơn (workspace mới vẫn nguội — do keying Map 2). (600s / 6 / grace là hằng số plugin đặt, chỉnh được.)
 
 ## 2. Cache share giữa các workspace không?
 
