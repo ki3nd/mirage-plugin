@@ -1,4 +1,4 @@
-dify_plugin>=0.7.4
+dify_plugin>=0.9.0
 mirage-ai[s3,r2,gcs,oci,redis,postgres,mongodb,ssh,hf,chroma,lancedb,qdrant,nextcloud,databricks,email,parquet,pdf,hdf5]
 httpx>=0.27
 uvicorn>=0.30
