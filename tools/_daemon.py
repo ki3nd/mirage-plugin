@@ -18,12 +18,65 @@ background reaper thread, retry-on-cold for ``execute``/
 
 import atexit
 import os
+import tempfile
 import threading
 import time
+from pathlib import Path
 
 import httpx
 
 from mirage.cli.client import make_client
+
+
+def _pick_writable_home(candidates: list[str] | None = None) -> str:
+    """Return the first candidate directory we can actually create and
+    write into, for use as ``$MIRAGE_HOME``.
+
+    Mirage (>=0.0.4) puts its whole on-disk data tree -- daemon pid/log,
+    auth token, config.toml, git repos, live state, and snapshots -- under
+    a single root resolved from ``$MIRAGE_HOME`` (default ``~/.mirage``).
+    On a Dify cloud sandbox ``$HOME`` is not writable and there may be no
+    ``/tmp``, so the default blows up on first write. We can't know which
+    path is writable ahead of time, so probe candidates in priority order
+    and pick the first that works:
+
+    1. ``tempfile.gettempdir()`` -- honours ``$TMPDIR`` and is the natural
+       home for non-persistent scratch; skipped if absent/unwritable (as
+       in sandboxes with no ``/tmp``).
+    2. ``os.getcwd()`` -- the plugin's own unpacked directory. The Dify
+       plugin daemon runs the plugin from here (the SDK loads every tool
+       source via ``os.path.join(os.getcwd(), ...)``), so it is writable
+       inside the sandbox even when ``$HOME`` and ``/tmp`` are not.
+    3. ``~/.mirage`` -- the mirage default; works on self-hosted installs.
+
+    None of these are persistent across redeploys, which is fine: each
+    conversation's workspace is recreated on demand and evicted when idle.
+    """
+    if candidates is None:
+        candidates = [
+            os.path.join(tempfile.gettempdir(), "mirage"),
+            os.path.join(os.getcwd(), ".mirage"),
+            str(Path.home() / ".mirage"),
+        ]
+    for base in candidates:
+        try:
+            os.makedirs(base, exist_ok=True)
+            with tempfile.TemporaryFile(dir=base):
+                pass
+            return base
+        except OSError:
+            continue
+    # Nothing was writable; fall back to the mirage default and let it
+    # surface its own error rather than masking it here.
+    return str(Path.home() / ".mirage")
+
+
+# Relocate mirage's on-disk data tree off ``$HOME`` (unwritable on Dify
+# cloud) to the first writable directory we can find. Set before the first
+# ``make_client()`` / daemon spawn so both this process and the spawned
+# daemon (which inherits our env) agree on one location. Deployments can
+# override by setting ``MIRAGE_HOME`` themselves.
+os.environ.setdefault("MIRAGE_HOME", _pick_writable_home())
 
 # Keep a spawned daemon alive longer once its workspace registry empties, so
 # short lulls between conversations don't trigger a respawn (the daemon reads
